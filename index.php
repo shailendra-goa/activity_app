@@ -11,12 +11,10 @@ if ($conn->connect_error) {
   die("Connection failed: " . $conn->connect_error);
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST"){
+if (($_SERVER["REQUEST_METHOD"] == "POST") && ($_GET['action']=='submit')){
     $sql = "INSERT INTO activity (name, description, category, activity_date)
   VALUES ('".$_POST['title']."', '".$_POST['description']."', '".$_POST['category']."','".$_POST['date']."')";
   echo $sql;
-
-
 
   if ($conn->query($sql) === TRUE) {
     echo "New record created successfully";
@@ -28,6 +26,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST"){
   }
 }
 
+if (($_SERVER["REQUEST_METHOD"] == "POST") && ($_GET['action']=='update')){
+  $sql = "UPDATE activity SET name='".$_POST['title']."', description='".$_POST['description']."', category='".$_POST['category']."', activity_date='".$_POST['date']."' WHERE id=".$_GET['id'];
+
+  if ($conn->query($sql) === TRUE) {
+    echo "Record updated successfully";
+  } else {
+    echo "Error updating record: " . $conn->error;
+  }
+}
+
+if (($_SERVER["REQUEST_METHOD"] == "POST") && ($_GET['action']=='delete')){
+  $sql = "DELETE from activity WHERE id=".$_GET['id'];
+
+  if ($conn->query($sql) === TRUE) {
+    echo "Record deleted successfully";
+  } else {
+    echo "Error deleting record: " . $conn->error;
+  }
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -54,9 +71,88 @@ if ($_SERVER["REQUEST_METHOD"] == "POST"){
 </nav>
 <div class="container-fluid">
   <div class="row">&nbsp;</div>
-  <div class="row">
+  <div class="row">  
+<?php
+//For Edit
+if((isset($_GET['action'])) && ($_GET['action']=='edit')){
+  $sql = "SELECT id, name, description, category, activity_date FROM activity where id=".$_GET['id'];
+  $result = $conn->query($sql);
+  if ($result->num_rows > 0) {
+  // output data of each row
+  while($row = $result->fetch_assoc()) {    
+?>
     <div class="col-4">
-      <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+      <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>?action=update&id=<?=$_GET['id']?>">
+        <div class="col">
+          <div class="mb-3">
+            <label class="form-label">Activity Title</label>
+            <input type="text" class="form-control" id="title" name="title" value="<?= $row['name']?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" name="description" rows="3"><?= $row['description']?></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Category</label>
+             <input type="text" class="form-control" id="category" name="category" value="<?= $row['category']?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-control" id="date" name="date" value="<?= $row['activity_date'] ?>">
+          </div>
+          <div class="mb-3">
+            <button type="submit" class="btn btn-dark float-right">Edit</button>
+          </div>
+        </div>
+      </form>
+    </div>
+<?php
+  }
+    $result -> free_result();
+  }
+}
+//For Delete
+else if((isset($_GET['action'])) && ($_GET['action']=='confirm_delete')){
+  $sql = "SELECT id, name, description, category, activity_date FROM activity where id=".$_GET['id'];
+  $result = $conn->query($sql);
+  if ($result->num_rows > 0) {
+  // output data of each row
+  while($row = $result->fetch_assoc()) {    
+?>
+    <div class="col-4">
+      <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>?action=delete&id=<?=$_GET['id']?>">
+        <div class="col">
+          <div class="mb-3">
+            <label class="form-label">Activity Title</label>
+            <input type="text" class="form-control" id="title" name="title" value="<?= $row['name']?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" name="description" rows="3"><?= $row['description']?></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Category</label>
+             <input type="text" class="form-control" id="category" name="category" value="<?= $row['category']?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-control" id="date" name="date" value="<?= $row['activity_date'] ?>">
+          </div>
+          <div class="mb-3">
+            <button type="submit" class="btn btn-dark float-right">Delete</button>
+          </div>
+        </div>
+      </form>
+    </div>
+<?php
+  }
+    $result -> free_result();
+  }
+}
+else{
+?>
+    <div class="col-4">
+      <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>?action=submit">
         <div class="col">
           <div class="mb-3">
             <label class="form-label">Activity Title</label>
@@ -80,6 +176,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST"){
         </div>
       </form>
     </div>
+<?php
+}
+?>
+
     <div class="col-8">
       <div class="container">
         <div class="row" >
@@ -104,7 +204,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST"){
           <div class="col-3 border bg-light"><?= $row["description"] ?></div>
           <div class="col-3 border bg-light"><?= $row["category"] ?></div>
           <div class="col-2 border bg-light"><?= $row["activity_date"] ?></div>
-          <div class="col-3 border bg-light"><a href='update_product.php?id={$id}' class='btn btn-info'> Edit </a> <a delete-id='{$id}' class='btn btn-danger'>Delete</a></div>
+          <div class="col-3 border bg-light"><a href="index.php?action=edit&id=<?= $row['id'] ?>" class='btn btn-info'> Edit </a> <a href="index.php?action=confirm_delete&id=<?= $row['id'] ?>" class='btn btn-danger delete-object'>Delete</a></div>
         </div>
 <?php
         }
